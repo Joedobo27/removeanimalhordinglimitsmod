@@ -1,10 +1,8 @@
 package com.Joedobo27.WUmod;
 
 
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtMethod;
-import javassist.NotFoundException;
+import javassist.*;
+import javassist.Modifier;
 import javassist.expr.ExprEditor;
 import javassist.expr.MethodCall;
 import org.gotti.wurmunlimited.modloader.classhooks.HookManager;
@@ -17,19 +15,19 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class RemoveAnimalHordingLimitsMod implements WurmServerMod, Initable, Configurable {
+public class RemoveAnimalHoardingLimitsMod implements WurmServerMod, Initable, Configurable {
 
     private boolean removeBrandLimit = true;
     private boolean removeCreatureRatioAffects = true;
     private boolean removeDiseaseSpread = true;
     private static ClassPool pool;
 
-    private static final Logger logger = Logger.getLogger(RemoveAnimalHordingLimitsMod.class.getName());
+    private static final Logger logger = Logger.getLogger(RemoveAnimalHoardingLimitsMod.class.getName());
 
     @Override
     public void configure(Properties properties) {
         removeBrandLimit = Boolean.parseBoolean(properties.getProperty("removeBrandLimit", Boolean.toString(removeBrandLimit)));
-        removeCreatureRatioAffects = Boolean.parseBoolean(properties.getProperty("removeCreatureRationAffects", Boolean.toString(removeCreatureRatioAffects)));
+        removeCreatureRatioAffects = Boolean.parseBoolean(properties.getProperty("removeCreatureRatioAffects", Boolean.toString(removeCreatureRatioAffects)));
         removeDiseaseSpread = Boolean.parseBoolean(properties.getProperty("removeDiseaseSpread", Boolean.toString(removeDiseaseSpread)));
     }
 
@@ -38,7 +36,7 @@ public class RemoveAnimalHordingLimitsMod implements WurmServerMod, Initable, Co
         pool = HookManager.getInstance().getClassPool();
         try {
             removeBrandLimitBytecode();
-            removeCreatureRationAffectsBytecode();
+            removeCreatureRatioAffectsBytecode();
             removeDiseaseSpreadBytecode();
         } catch (NotFoundException | CannotCompileException e) {
             logger.log(Level.WARNING, e.toString(), e);
@@ -61,7 +59,7 @@ public class RemoveAnimalHordingLimitsMod implements WurmServerMod, Initable, Co
         });
     }
 
-    private void removeCreatureRationAffectsBytecode() throws NotFoundException, CannotCompileException{
+    private void removeCreatureRatioAffectsBytecode() throws NotFoundException, CannotCompileException{
         if (!removeCreatureRatioAffects)
             return;
         CtMethod cmCheckPregnancy = pool.get("com.wurmonline.server.creatures.Creature").getMethod("checkPregnancy", "(Z)Z");
@@ -119,6 +117,21 @@ public class RemoveAnimalHordingLimitsMod implements WurmServerMod, Initable, Co
                 if (Objects.equals("getThisAndSurroundingTiles", methodCall.getMethodName())){
                     methodCall.replace("{ $1=0; $_ = $proceed($$); }");
                     logger.log(Level.INFO, "set the disease spread search zone size to 0 in VolaTile.class checkDiseaseSpread() at " + methodCall.getLineNumber());
+                }
+            }
+        });
+
+        CtClass cfVolaTile = pool.get("com.wurmonline.server.zones.VolaTile");
+        CtField cfEmptyCreatures = cfVolaTile.getDeclaredField("emptyCreatures");
+        cfEmptyCreatures.setModifiers(Modifier.setPublic(cfEmptyCreatures.getModifiers()));
+        CtMethod cmCheckDisease = pool.get("com.wurmonline.server.creatures.CreatureStatus").getDeclaredMethod("checkDisease");
+        cmCheckDisease.instrument(new ExprEditor() {
+            @Override
+            public void edit(MethodCall methodCall) throws CannotCompileException {
+                if (Objects.equals("getCreatures", methodCall.getMethodName())){
+                    methodCall.replace("$_ = com.wurmonline.server.zones.VolaTile.emptyCreatures;");
+                    logger.log(Level.INFO, "Set checkDisease() of CreatureStatus.class to always use 1 animal per a tile regardless" +
+                            "of actual count at " + methodCall.getLineNumber());
                 }
             }
         });

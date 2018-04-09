@@ -1,4 +1,4 @@
-package com.Joedobo27.rahlm;
+package com.joedobo27.rahlm;
 
 
 import javassist.*;
@@ -60,9 +60,7 @@ public class RemoveAnimalHoardingLimitsMod implements WurmServerMod, Initable {
             // Modify com.wurmonline.server.creatures.CreatureStatus.checkDisease() so it always uses a deed ratio
             // of 100.
             HookManager.getInstance().getClassPool().get("com.wurmonline.server.creatures.CreatureStatus")
-                    .getMethod("checkDisease", Descriptor.ofMethod(CtPrimitiveType.intType, new CtClass[]{
-                            CtPrimitiveType.voidType
-                    })).instrument(new ExprEditor() {
+                    .getDeclaredMethod("checkDisease", null).instrument(new ExprEditor() {
                 @Override public void edit(MethodCall methodCall) throws CannotCompileException {
                     if (Objects.equals("getCreatureRatio", methodCall.getMethodName())) {
                         methodCall.replace("$_ = 100.0f;");
@@ -99,7 +97,7 @@ public class RemoveAnimalHoardingLimitsMod implements WurmServerMod, Initable {
             emptyCreatures.setModifiers(Modifier.setPublic(emptyCreatures.getModifiers()));
 
             HookManager.getInstance().getClassPool().get("com.wurmonline.server.creatures.CreatureStatus")
-                    .getDeclaredMethod("checkDisease", new CtClass[]{CtPrimitiveType.voidType})
+                    .getDeclaredMethod("checkDisease", null)
                     .instrument(new ExprEditor() {
                         public void edit(MethodCall methodCall) throws CannotCompileException {
                             if (Objects.equals("getCreatures", methodCall.getMethodName())){

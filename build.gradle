@@ -2,8 +2,8 @@
 apply plugin: 'java'
 apply plugin: 'distribution'
 
-group 'com.joedobo27'
-version '1.0.1'
+group = 'com.joedobo27'
+version = '1.0.1'
 sourceCompatibility = 1.8
 
 def WUServerPath = "C:\\Users\\Jason\\Documents\\WU\\WU-Server\\"
